@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -36,7 +35,17 @@ func init() {
 func run() error {
 	flag.Parse()
 	if *auth == "" {
-		return errors.New("-a is a required argument")
+		// maybe we can load it from the secret dir
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("auto-detecting auth key: loading home dir: %w", err)
+		}
+		authpath := filepath.Join(home, ".config/secrets/circleci")
+		authbs, err := os.ReadFile(authpath)
+		if err != nil {
+			return fmt.Errorf("no auth key specified and failed to auto load one from %v: %w", authpath, err)
+		}
+		*auth = string(authbs)
 	}
 	if len(flag.Args()) != 1 {
 		return fmt.Errorf("expected exactly 1 URL argument, got %v", len(flag.Args()))
